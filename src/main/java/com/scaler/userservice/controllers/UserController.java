@@ -1,17 +1,14 @@
 package com.scaler.userservice.controllers;
 
-import com.scaler.userservice.dtos.LogInRequestDto;
-import com.scaler.userservice.dtos.LogOutRequestDto;
-import com.scaler.userservice.dtos.SignUpRequestDto;
-import com.scaler.userservice.dtos.UserDto;
+import com.scaler.userservice.dtos.*;
+import com.scaler.userservice.exceptions.InvalidPasswordException;
+import com.scaler.userservice.exceptions.InvalidTokenException;
 import com.scaler.userservice.models.Token;
 import com.scaler.userservice.models.User;
 import com.scaler.userservice.services.UserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/users")
@@ -34,13 +31,32 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public Token logIn(@RequestBody LogInRequestDto requestDto){
-        return null;
+    public LogInResponseDto logIn(@RequestBody LogInRequestDto requestDto) throws InvalidPasswordException {
+        Token token =  userService.login(requestDto.getEmail(), requestDto.getPassword());
+        LogInResponseDto responseDto = new LogInResponseDto();
+        responseDto.setToken(token);
+        return responseDto;
     }
+
+
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logOut(@RequestBody LogOutRequestDto requestDto){
-        return null;
+        ResponseEntity<Void> responseEntity = null;
+        try {
+            userService.logout(requestDto.getToken());
+            responseEntity = new ResponseEntity<>(HttpStatus.OK);
+        } catch (InvalidTokenException e) {
+            System.out.println("Something went wrong.");
+            responseEntity = new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
+        return responseEntity;
+    }
+
+    @PostMapping("/validate/{token}")
+    public UserDto validateToken(@PathVariable String token) throws InvalidTokenException {
+        return UserDto.from(userService.validateToken(token));
     }
 
 }
